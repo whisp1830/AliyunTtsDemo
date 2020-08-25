@@ -8,6 +8,8 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+
+import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
@@ -42,20 +44,13 @@ public class DemoController {
     RestTemplate restTemplate;
 
     @GetMapping("/tts")
-    public ResponseEntity<byte[]> fetchData(@RequestParam(value = "text", defaultValue = "客户满意是我们的最大动力") String text) {
-
-        String format = "mp3";
-        String voiceName = "xiaoyun";
-
-
+    public ResponseEntity<byte[]> fetchData(HttpServletRequest req) {
         if (expireTime < System.currentTimeMillis()) {
             System.out.println("access_token已过期，需要重新获取");
             try {
                 AccessToken token = new AccessToken(ACCESS_KEY_ID, ACCESS_KEY_SECRET);
                 token.apply();
                 accessToken = token.getToken();
-                System.out.println(text);
-                System.out.println(accessToken);
                 expireTime = token.getExpireTime() * 1000L;
                 System.out.println("新access_token获取成功，过期时间:");
                 System.out.println(new Date(token.getExpireTime() * 1000));
@@ -68,14 +63,13 @@ public class DemoController {
 
         String wavFileUrl = TTS_HOST + WAV_FILE_PATH;
         wavFileUrl += "?appkey=" + APP_KEY;
-        wavFileUrl += "&text=" + text;
         wavFileUrl += "&token=" + accessToken;
-        wavFileUrl += "&format=" + format;
+        wavFileUrl += "&format=" + (req.getParameter("audio_type") == null ? "mp3" : req.getParameter("audio_type"));
         wavFileUrl += "&voice={voice_name}&text={text}";
 
         Map<String, Object> map = new HashMap<String, Object>(2);
-        map.put("voice_name", voiceName);
-        map.put("text", text);
+        map.put("voice_name", (req.getParameter("voice_name") == null ? "xiaoyun" : req.getParameter("voice_name")));
+        map.put("text", (req.getParameter("text") == null ? "一件黑色毛衣" : req.getParameter("text")));
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", CONTENT_TYPE);
